@@ -1,0 +1,30 @@
+{
+  "build": {
+    "beforeBuildCommand": "npm run build",
+    "beforeDevCommand": "npm run dev",
+    "devPath": "http://localhost:8080",
+    "distDir": "../public"
+  },
+  "package": {
+    "productName": "ddmap-app",
+    "version": "0.1.0"
+  },
+  "tauri": {
+    "identifier": "com.taknomi.ddmap",
+    "windows": [
+      {
+        "title": "ddmap-app",
+        "width": 1000,
+        "height": 800,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    },
+    "bundle": {
+      "active": true,
+      "targets": ["msi", "deb"]
+    }
+  }
+}
