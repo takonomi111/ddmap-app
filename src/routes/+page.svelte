@@ -13,6 +13,7 @@ import {
   toggleTaskDone as updateTaskDone,
   deleteTask as deleteTaskFromDB
 } from '$lib/taskService';
+import { loadCategoryOptions, addCategoryOption } from '$lib/categoryService';
 
   const rows = ['I','H','G','F','E','D','C','B','A'];
   const cols = [1,2,3,4,5,6,7,8,9];
@@ -43,7 +44,7 @@ onMount(async () => {
   let newCategoryName = '';
   let newCategoryColor = '#ffffff';
 
-  let selectedCategory = categories[0].name;
+  let selectedCategory: string = '';
   let memo = '';
   let zoom = 1;
 
@@ -52,6 +53,11 @@ onMount(async () => {
 
   let editingIndex: number | null = null;
   let openSection: string = 'pin';
+
+  let tileName = ''
+  let tileMemo = ''
+  let tileFile: File | null = null
+  
 
   function toggleAccordion(section: string) {
     openSection = openSection === section ? '' : section;
@@ -63,6 +69,7 @@ onMount(async () => {
   const y = ((e.clientY - rect.top) / rect.height) * 100;
   const color = categories.find(c => c.name === selectedCategory)?.color ?? '#fff';
   const createdAt = new Date().toISOString();
+  const category = selectedCategory
 
   const newPin = {
     tile,
@@ -126,12 +133,17 @@ onMount(async () => {
     memo = '';
   }
 
-  function addCategory() {
-    if (!newCategoryName.trim()) return;
-    categories = [...categories, { name: newCategoryName.trim(), color: newCategoryColor }];
+  async function addCategory() {
+  if (!newCategoryName.trim()) return;
+  try {
+    const added = await addCategoryOption(newCategoryName.trim(), newCategoryColor);
+    categories = [...categories, added];
     newCategoryName = '';
     newCategoryColor = '#ffffff';
+  } catch (err) {
+    console.error('カテゴリ追加失敗:', err);
   }
+}
 
   function toggleFilter(cat: string) {
     if (filterCategories.includes(cat)) {
@@ -226,8 +238,12 @@ onMount(async () => {
 
 onMount(async () => {
   try {
-    pins = await loadPins(); // 既にある読み込み
-    tasks = await loadTasks(); // ← 追加
+    categories = await loadCategoryOptions();
+    if (categories.length > 0) {
+      selectedCategory = categories[0].name;
+    }
+    pins = await loadPins();
+    tasks = await loadTasks();
   } catch (err) {
     console.error('読み込み失敗:', err);
   }
@@ -521,6 +537,8 @@ onMount(async () => {
         </div>
       {/if}
     </div>
+
+
 
 <!-- タスク／メモ機能（左パネルの一番下） -->
 <div class="accordion-section">
