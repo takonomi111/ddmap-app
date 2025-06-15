@@ -187,6 +187,55 @@ let taskMessage = '';
 let selectedPinIndex: number | null = null;
 let taskIdCounter = 1;
 
+async function uploadTileImage() {
+  if (!tileName || !tileFile) {
+    alert('タイル名と画像を入力してください');
+    return;
+  }
+
+  const fileExt = tileFile.name.split('.').pop();
+  const fileName = `${tileName}_${Date.now()}.${fileExt}`;
+  const filePath = `${fileName}`;
+
+  // Supabase Storage にアップロード
+  const { error: uploadError } = await supabase.storage
+    .from('tile-images')
+    .upload(filePath, tileFile);
+
+  if (uploadError) {
+    alert('アップロード失敗');
+    console.error(uploadError);
+    return;
+  }
+
+  // StorageのURLを取得（Public URL前提）
+  const { data: urlData } = supabase
+    .storage
+    .from('tile-images')
+    .getPublicUrl(filePath);
+
+  const imageUrl = urlData.publicUrl;
+
+  // DBに情報を登録
+  const { error: insertError } = await supabase.from('tile-images').insert({
+    tile: tileName,
+    image_url: imageUrl,
+    memo: tileMemo,
+    created_at: new Date().toISOString()
+  });
+
+  if (insertError) {
+    alert('DB登録失敗');
+    console.error(insertError);
+  } else {
+    alert('アップロード完了！');
+    // 初期化
+    tileName = '';
+    tileMemo = '';
+    tileFile = null;
+  }
+}
+
 async function addTask() {
   if (!taskDate || !taskTime || !taskMessage.trim()) return;
   const dt = `${taskDate} ${taskTime}`;
@@ -538,7 +587,26 @@ onMount(async () => {
       {/if}
     </div>
 
+<!-- アップロードUI -->
+<div class="accordion-section">
+  <div class="accordion-title" on:click={() => toggleAccordion('tileImage')}>
+     タイル画像アップロード
+  </div>
+  {#if openSection === 'tileImage'}
+    <div class="accordion-content" transition:slide>
+      <label>タイル名（例：F5）</label>
+      <input type="text" bind:value={tileName} placeholder="タイル名" />
 
+      <label>メモ（任意）</label>
+      <input type="text" bind:value={tileMemo} placeholder="メモ" />
+
+      <label>画像ファイル</label>
+      <input type="file" on:change={(e) => tileFile = e.target.files[0]} />
+
+      <button on:click={uploadTileImage}>アップロード</button>
+    </div>
+  {/if}
+</div>
 
 <!-- タスク／メモ機能（左パネルの一番下） -->
 <div class="accordion-section">
